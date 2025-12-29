@@ -137,7 +137,8 @@ final class LedMarqueeView: UIView {
         lastTimestamp = link.timestamp
 
         let directionMultiplier: CGFloat = direction == .left ? -1 : 1
-        let offset = scrollSpeed * delta * directionMultiplier
+        let pixelStep = max(dotSize + dotSpacing, 1)
+        let offset = scrollSpeed * pixelStep * delta * directionMultiplier
 
         self.offset += offset
         setNeedsDisplay()
