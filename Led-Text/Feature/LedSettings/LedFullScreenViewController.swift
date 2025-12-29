@@ -22,10 +22,10 @@ final class LedFullScreenViewController: UIViewController {
         view.addSubview(marqueeView)
 
         NSLayoutConstraint.activate([
-            marqueeView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
-            marqueeView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
-            marqueeView.centerYAnchor.constraint(equalTo: view.centerYAnchor),
-            marqueeView.heightAnchor.constraint(equalTo: view.heightAnchor, multiplier: 0.35)
+            marqueeView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            marqueeView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            marqueeView.topAnchor.constraint(equalTo: view.topAnchor),
+            marqueeView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
         ])
 
         let tapGesture = UITapGestureRecognizer(target: self, action: #selector(handleTapToDismiss))
@@ -69,6 +69,9 @@ final class LedFullScreenViewController: UIViewController {
     }
 
     @objc private func handleTapToDismiss() {
-        dismiss(animated: true)
+        dismiss(animated: true) {
+            UIDevice.current.setValue(UIInterfaceOrientation.portrait.rawValue, forKey: "orientation")
+            UIViewController.attemptRotationToDeviceOrientation()
+        }
     }
 }
