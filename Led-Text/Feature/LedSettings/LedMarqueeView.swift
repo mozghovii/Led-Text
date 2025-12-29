@@ -204,6 +204,19 @@ final class LedMarqueeView: UIView {
             UIColor.clear.setFill()
             context.fill(CGRect(origin: .zero, size: canvasSize))
 
+            let backgroundDotColor = textColor.withAlphaComponent(0.15)
+            context.cgContext.setFillColor(backgroundDotColor.cgColor)
+            var backgroundRow: CGFloat = 0
+            while backgroundRow < canvasSize.height {
+                var backgroundCol: CGFloat = 0
+                while backgroundCol < canvasSize.width {
+                    let rect = CGRect(x: backgroundCol, y: backgroundRow, width: dotSize, height: dotSize)
+                    context.cgContext.fillEllipse(in: rect)
+                    backgroundCol += pixelStep
+                }
+                backgroundRow += pixelStep
+            }
+
             guard let data = textBitmap.data else { return }
             data.withUnsafeBytes { buffer in
                 let bytes = buffer.bindMemory(to: UInt8.self)
@@ -268,6 +281,8 @@ final class LedMarqueeView: UIView {
 
             context.setFillColor(UIColor.clear.cgColor)
             context.fill(CGRect(x: 0, y: 0, width: width, height: height))
+            context.translateBy(x: 0, y: CGFloat(rows))
+            context.scaleBy(x: 1, y: -1)
             let textRect = CGRect(x: 0, y: (CGFloat(rows) - textSize.height) / 2, width: textSize.width, height: textSize.height)
             UIGraphicsPushContext(context)
             (text as NSString).draw(in: textRect, withAttributes: textAttributes)
