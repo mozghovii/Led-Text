@@ -1,20 +1,17 @@
 import UIKit
 
-final class ArchExampleCoordinator: Coordinator {
+final class LedTextCoordinator: Coordinator {
 
     private let navigationController: UINavigationController
-    private let network: NetworkService
 
-    init(navigationController: UINavigationController, network: NetworkService) {
+    init(navigationController: UINavigationController) {
         self.navigationController = navigationController
-        self.network = network
         super.init()
     }
 
     override func start(animated: Bool = true) {
-        let service = ArchExampleService(network: network)
-        let viewModel = ArchExampleViewModel(service: service)
-        let vc = ArchExampleViewController(viewModel: viewModel)
+        let viewModel = LedSettingsViewModel()
+        let vc = LedSettingsViewController(viewModel: viewModel)
 
         self.viewController = vc
         navigationController.pushViewController(vc, animated: animated)
