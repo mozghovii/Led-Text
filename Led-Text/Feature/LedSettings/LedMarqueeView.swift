@@ -82,6 +82,11 @@ final class LedMarqueeView: UIView {
         guard displayLink == nil else { return }
         lastTimestamp = 0
         let link = CADisplayLink(target: self, selector: #selector(handleDisplayLink(_:)))
+        if #available(iOS 15.0, *) {
+            link.preferredFrameRateRange = CAFrameRateRange(minimum: 60, maximum: 120, preferred: 120)
+        } else {
+            link.preferredFramesPerSecond = 60
+        }
         link.add(to: .main, forMode: .common)
         displayLink = link
         configureBlinkTimer()
@@ -137,9 +142,8 @@ final class LedMarqueeView: UIView {
         lastTimestamp = link.timestamp
 
         let directionMultiplier: CGFloat = direction == .left ? -1 : 1
-        let baseWidth: CGFloat = 420
-        let sizeScale = max(bounds.width / baseWidth, 0.6)
-        let offset = scrollSpeed * sizeScale * delta * directionMultiplier
+        let pixelStep = max(dotSize + dotSpacing, 1)
+        let offset = scrollSpeed * pixelStep * delta * directionMultiplier
 
         self.offset += offset
         setNeedsDisplay()
@@ -156,7 +160,9 @@ final class LedMarqueeView: UIView {
 
         let directionMultiplier: CGFloat = direction == .left ? -1 : 1
         let totalShift = offset * directionMultiplier
-        let shiftColumns = Int(floor(totalShift / pixelStep))
+        let shift = totalShift / pixelStep
+        let shiftBase = Int(floor(shift))
+        let shiftFraction = abs(shift - CGFloat(shiftBase))
 
         let offDotColor = textColor.withAlphaComponent(0.12)
         let glowAlpha = min(max(glowIntensity, 0), 1)
@@ -167,18 +173,12 @@ final class LedMarqueeView: UIView {
 
         for row in 0..<rows {
             for col in 0..<columns {
-                let mappedCol = (col + shiftColumns).modulo(textWidth)
-                let alpha: UInt8
-                if mappedCol < bitmap.width {
-                    let index = (row * bitmap.width + mappedCol) * 4
-                    if index + 3 < (bitmap.data?.count ?? 0) {
-                        alpha = bitmap.data?[index + 3] ?? 0
-                    } else {
-                        alpha = 0
-                    }
-                } else {
-                    alpha = 0
-                }
+                let mappedCol = (col + shiftBase).modulo(textWidth)
+                let mappedNextCol = (mappedCol + 1).modulo(textWidth)
+
+                let alphaA = sampleAlpha(bitmap: bitmap, row: row, col: mappedCol)
+                let alphaB = sampleAlpha(bitmap: bitmap, row: row, col: mappedNextCol)
+                let blendedAlpha = (CGFloat(alphaA) * (1 - shiftFraction)) + (CGFloat(alphaB) * shiftFraction)
 
                 let rect = CGRect(
                     x: CGFloat(col) * pixelStep,
@@ -187,14 +187,16 @@ final class LedMarqueeView: UIView {
                     height: dotSize
                 )
 
-                if alpha > activeAlphaThreshold, isBlinkOn {
+                if blendedAlpha > CGFloat(activeAlphaThreshold), isBlinkOn {
                     if glowAlpha > 0 {
                         let glowRect = rect.insetBy(dx: -dotSize * 0.4, dy: -dotSize * 0.4)
-                        let glowColor = textColor.withAlphaComponent(glowAlpha * 0.7)
+                        let glowScale = min(blendedAlpha / 255, 1)
+                        let glowColor = textColor.withAlphaComponent(glowAlpha * 0.7 * glowScale)
                         context.setFillColor(glowColor.cgColor)
                         context.fillEllipse(in: glowRect)
                     }
-                    context.setFillColor(textColor.cgColor)
+                    let fillScale = min(blendedAlpha / 255, 1)
+                    context.setFillColor(textColor.withAlphaComponent(fillScale).cgColor)
                 } else {
                     context.setFillColor(offDotColor.cgColor)
                 }
@@ -208,6 +210,14 @@ final class LedMarqueeView: UIView {
         let rows = max(Int(bounds.height / pixelStep), 8)
         let textBitmap = renderTextBitmap(rows: rows)
         cachedBitmap = textBitmap
+    }
+
+    private func sampleAlpha(bitmap: Bitmap, row: Int, col: Int) -> UInt8 {
+        guard col >= 0, row >= 0, col < bitmap.width, row < bitmap.height else { return 0 }
+        guard let data = bitmap.data else { return 0 }
+        let index = (row * bitmap.width + col) * 4
+        guard index + 3 < data.count else { return 0 }
+        return data[index + 3]
     }
 
     private func renderTextBitmap(rows: Int) -> Bitmap {
