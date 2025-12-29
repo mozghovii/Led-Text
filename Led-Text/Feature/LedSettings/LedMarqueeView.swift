@@ -8,13 +8,13 @@ final class LedMarqueeView: UIView {
 
     var text: String = "LED Text" {
         didSet {
-            updateLabels()
+            updateImages()
         }
     }
 
     var textColor: UIColor = .systemRed {
         didSet {
-            updateLabelStyle()
+            updateImages()
         }
     }
 
@@ -22,7 +22,7 @@ final class LedMarqueeView: UIView {
 
     var direction: Direction = .left {
         didSet {
-            updateLabels()
+            layoutImages()
         }
     }
 
@@ -38,8 +38,20 @@ final class LedMarqueeView: UIView {
         }
     }
 
-    private let label1 = UILabel()
-    private let label2 = UILabel()
+    var dotSize: CGFloat = 6 {
+        didSet {
+            updateImages()
+        }
+    }
+
+    var dotSpacing: CGFloat = 2 {
+        didSet {
+            updateImages()
+        }
+    }
+
+    private let imageView1 = UIImageView()
+    private let imageView2 = UIImageView()
     private var displayLink: CADisplayLink?
     private var lastTimestamp: CFTimeInterval = 0
     private var blinkTimer: Timer?
@@ -73,60 +85,52 @@ final class LedMarqueeView: UIView {
         displayLink = nil
         blinkTimer?.invalidate()
         blinkTimer = nil
-        label1.alpha = 1
-        label2.alpha = 1
+        imageView1.alpha = 1
+        imageView2.alpha = 1
     }
 
     override func layoutSubviews() {
         super.layoutSubviews()
-        updateLabels()
+        layoutImages()
     }
 
     private func configureView() {
         clipsToBounds = true
-        label1.font = UIFont.monospacedSystemFont(ofSize: 32, weight: .bold)
-        label2.font = label1.font
-        addSubview(label1)
-        addSubview(label2)
-        updateLabels()
-        updateLabelStyle()
+        imageView1.contentMode = .left
+        imageView2.contentMode = .left
+        addSubview(imageView1)
+        addSubview(imageView2)
+        updateImages()
     }
 
-    private func updateLabelStyle() {
-        [label1, label2].forEach { label in
-            label.textColor = textColor
-            label.layer.shadowColor = textColor.cgColor
-            label.layer.shadowRadius = 8
-            label.layer.shadowOpacity = 0.9
-            label.layer.shadowOffset = .zero
-        }
+    private func updateImages() {
+        let renderedImage = renderPixelTextImage()
+        imageView1.image = renderedImage
+        imageView2.image = renderedImage
+        layoutImages()
     }
 
-    private func updateLabels() {
-        label1.text = text
-        label2.text = text
-        label1.sizeToFit()
-        label2.sizeToFit()
-
-        let y = (bounds.height - label1.bounds.height) / 2
-        let totalWidth = label1.bounds.width + spacing
+    private func layoutImages() {
+        guard let image = imageView1.image else { return }
+        let y = (bounds.height - image.size.height) / 2
+        let totalWidth = image.size.width + spacing
 
         switch direction {
         case .left:
-            label1.frame = CGRect(x: 0, y: y, width: label1.bounds.width, height: label1.bounds.height)
-            label2.frame = CGRect(x: totalWidth, y: y, width: label2.bounds.width, height: label2.bounds.height)
+            imageView1.frame = CGRect(x: 0, y: y, width: image.size.width, height: image.size.height)
+            imageView2.frame = CGRect(x: totalWidth, y: y, width: image.size.width, height: image.size.height)
         case .right:
-            label1.frame = CGRect(
-                x: bounds.width - label1.bounds.width,
+            imageView1.frame = CGRect(
+                x: bounds.width - image.size.width,
                 y: y,
-                width: label1.bounds.width,
-                height: label1.bounds.height
+                width: image.size.width,
+                height: image.size.height
             )
-            label2.frame = CGRect(
-                x: label1.frame.minX - totalWidth,
+            imageView2.frame = CGRect(
+                x: imageView1.frame.minX - totalWidth,
                 y: y,
-                width: label2.bounds.width,
-                height: label2.bounds.height
+                width: image.size.width,
+                height: image.size.height
             )
         }
     }
@@ -134,17 +138,17 @@ final class LedMarqueeView: UIView {
     private func configureBlinkTimer() {
         blinkTimer?.invalidate()
         blinkTimer = nil
-        label1.alpha = 1
-        label2.alpha = 1
+        imageView1.alpha = 1
+        imageView2.alpha = 1
 
         guard blinkEnabled else { return }
 
         blinkTimer = Timer.scheduledTimer(withTimeInterval: blinkInterval, repeats: true) { [weak self] _ in
             guard let self else { return }
-            let nextAlpha: CGFloat = label1.alpha == 1 ? 0.2 : 1
+            let nextAlpha: CGFloat = imageView1.alpha == 1 ? 0.2 : 1
             UIView.animate(withDuration: 0.2) {
-                self.label1.alpha = nextAlpha
-                self.label2.alpha = nextAlpha
+                self.imageView1.alpha = nextAlpha
+                self.imageView2.alpha = nextAlpha
             }
         }
     }
@@ -161,22 +165,73 @@ final class LedMarqueeView: UIView {
         let directionMultiplier: CGFloat = direction == .left ? -1 : 1
         let offset = scrollSpeed * delta * directionMultiplier
 
-        label1.frame.origin.x += offset
-        label2.frame.origin.x += offset
+        imageView1.frame.origin.x += offset
+        imageView2.frame.origin.x += offset
 
         if direction == .left {
-            if label1.frame.maxX < 0 {
-                label1.frame.origin.x = label2.frame.maxX + spacing
+            if imageView1.frame.maxX < 0 {
+                imageView1.frame.origin.x = imageView2.frame.maxX + spacing
             }
-            if label2.frame.maxX < 0 {
-                label2.frame.origin.x = label1.frame.maxX + spacing
+            if imageView2.frame.maxX < 0 {
+                imageView2.frame.origin.x = imageView1.frame.maxX + spacing
             }
         } else {
-            if label1.frame.minX > bounds.width {
-                label1.frame.origin.x = label2.frame.minX - spacing - label1.bounds.width
+            if imageView1.frame.minX > bounds.width {
+                imageView1.frame.origin.x = imageView2.frame.minX - spacing - imageView1.bounds.width
             }
-            if label2.frame.minX > bounds.width {
-                label2.frame.origin.x = label1.frame.minX - spacing - label2.bounds.width
+            if imageView2.frame.minX > bounds.width {
+                imageView2.frame.origin.x = imageView1.frame.minX - spacing - imageView2.bounds.width
+            }
+        }
+    }
+
+    private func renderPixelTextImage() -> UIImage {
+        let font = UIFont.monospacedSystemFont(ofSize: 32, weight: .bold)
+        let textAttributes: [NSAttributedString.Key: Any] = [
+            .font: font,
+            .foregroundColor: UIColor.white
+        ]
+        let textSize = (text as NSString).size(withAttributes: textAttributes)
+        let canvasSize = CGSize(width: ceil(textSize.width) + 4, height: ceil(textSize.height) + 4)
+
+        let textRenderer = UIGraphicsImageRenderer(size: canvasSize)
+        let textImage = textRenderer.image { context in
+            UIColor.clear.setFill()
+            context.fill(CGRect(origin: .zero, size: canvasSize))
+            (text as NSString).draw(at: CGPoint(x: 2, y: 2), withAttributes: textAttributes)
+        }
+
+        let pixelStep = dotSize + dotSpacing
+        let pixelRenderer = UIGraphicsImageRenderer(size: canvasSize)
+        return pixelRenderer.image { context in
+            UIColor.clear.setFill()
+            context.fill(CGRect(origin: .zero, size: canvasSize))
+
+            guard let cgImage = textImage.cgImage else { return }
+            let width = cgImage.width
+            let height = cgImage.height
+            guard let data = cgImage.dataProvider?.data as Data? else { return }
+
+            data.withUnsafeBytes { buffer in
+                let bytes = buffer.bindMemory(to: UInt8.self)
+                for row in stride(from: 0, to: height, by: Int(pixelStep)) {
+                    for col in stride(from: 0, to: width, by: Int(pixelStep)) {
+                        let index = (row * width + col) * 4
+                        if index + 3 < bytes.count {
+                            let alpha = bytes[index + 3]
+                            if alpha > 40 {
+                                let rect = CGRect(
+                                    x: CGFloat(col),
+                                    y: CGFloat(row),
+                                    width: dotSize,
+                                    height: dotSize
+                                )
+                                context.cgContext.setFillColor(textColor.cgColor)
+                                context.cgContext.fillEllipse(in: rect)
+                            }
+                        }
+                    }
+                }
             }
         }
     }
