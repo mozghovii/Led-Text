@@ -56,7 +56,6 @@ final class LedMarqueeView: UIView {
         }
     }
 
-    private let backgroundImageView = UIImageView()
     private let imageView1 = UIImageView()
     private let imageView2 = UIImageView()
     private var displayLink: CADisplayLink?
@@ -98,23 +97,19 @@ final class LedMarqueeView: UIView {
 
     override func layoutSubviews() {
         super.layoutSubviews()
-        updateBackground()
         layoutImages()
     }
 
     private func configureView() {
         clipsToBounds = true
-        backgroundImageView.contentMode = .scaleToFill
         imageView1.contentMode = .left
         imageView2.contentMode = .left
-        addSubview(backgroundImageView)
         addSubview(imageView1)
         addSubview(imageView2)
         updateImages()
     }
 
     private func updateImages() {
-        updateBackground()
         let renderedImage = renderPixelTextImage()
         imageView1.image = renderedImage
         imageView2.image = renderedImage
@@ -122,10 +117,9 @@ final class LedMarqueeView: UIView {
     }
 
     private func layoutImages() {
-        backgroundImageView.frame = bounds
         guard let image = imageView1.image else { return }
         let y = (bounds.height - image.size.height) / 2
-        let totalWidth = image.size.width + spacing
+        let totalWidth = image.size.width
 
         switch direction {
         case .left:
@@ -182,17 +176,17 @@ final class LedMarqueeView: UIView {
 
         if direction == .left {
             if imageView1.frame.maxX < 0 {
-                imageView1.frame.origin.x = imageView2.frame.maxX + spacing
+                imageView1.frame.origin.x = imageView2.frame.maxX
             }
             if imageView2.frame.maxX < 0 {
-                imageView2.frame.origin.x = imageView1.frame.maxX + spacing
+                imageView2.frame.origin.x = imageView1.frame.maxX
             }
         } else {
             if imageView1.frame.minX > bounds.width {
-                imageView1.frame.origin.x = imageView2.frame.minX - spacing - imageView1.bounds.width
+                imageView1.frame.origin.x = imageView2.frame.minX - imageView1.bounds.width
             }
             if imageView2.frame.minX > bounds.width {
-                imageView2.frame.origin.x = imageView1.frame.minX - spacing - imageView2.bounds.width
+                imageView2.frame.origin.x = imageView1.frame.minX - imageView2.bounds.width
             }
         }
     }
@@ -202,8 +196,10 @@ final class LedMarqueeView: UIView {
         let glowAlpha = min(max(glowIntensity, 0), 1)
         let rows = max(Int(bounds.height / pixelStep), 8)
         let textBitmap = renderTextBitmap(rows: rows)
-        let columns = textBitmap.width
+        let gapColumns = max(Int(ceil(spacing / pixelStep)), 1)
+        let columns = textBitmap.width + gapColumns
         let canvasSize = CGSize(width: CGFloat(columns) * pixelStep, height: CGFloat(rows) * pixelStep)
+        let offDotColor = textColor.withAlphaComponent(0.12)
 
         let pixelRenderer = UIGraphicsImageRenderer(size: canvasSize)
         return pixelRenderer.image { context in
@@ -217,26 +213,31 @@ final class LedMarqueeView: UIView {
                 while row < rows {
                     var col = 0
                     while col < columns {
-                        let index = (row * columns + col) * 4
-                        if index + 3 < bytes.count {
-                            let alpha = bytes[index + 3]
-                            if alpha > 20 {
-                                let rect = CGRect(
-                                    x: CGFloat(col) * pixelStep,
-                                    y: CGFloat(row) * pixelStep,
-                                    width: dotSize,
-                                    height: dotSize
-                                )
-                                if glowAlpha > 0 {
-                                    let glowRect = rect.insetBy(dx: -dotSize * 0.4, dy: -dotSize * 0.4)
-                                    let glowColor = textColor.withAlphaComponent(glowAlpha * 0.7)
-                                    context.cgContext.setFillColor(glowColor.cgColor)
-                                    context.cgContext.fillEllipse(in: glowRect)
-                                }
-                                context.cgContext.setFillColor(textColor.cgColor)
-                                context.cgContext.fillEllipse(in: rect)
-                            }
+                        let index = (row * textBitmap.width + col) * 4
+                        let alpha: UInt8
+                        if col < textBitmap.width, index + 3 < bytes.count {
+                            alpha = bytes[index + 3]
+                        } else {
+                            alpha = 0
                         }
+                        let rect = CGRect(
+                            x: CGFloat(col) * pixelStep,
+                            y: CGFloat(row) * pixelStep,
+                            width: dotSize,
+                            height: dotSize
+                        )
+                        if alpha > 20 {
+                            if glowAlpha > 0 {
+                                let glowRect = rect.insetBy(dx: -dotSize * 0.4, dy: -dotSize * 0.4)
+                                let glowColor = textColor.withAlphaComponent(glowAlpha * 0.7)
+                                context.cgContext.setFillColor(glowColor.cgColor)
+                                context.cgContext.fillEllipse(in: glowRect)
+                            }
+                            context.cgContext.setFillColor(textColor.cgColor)
+                        } else {
+                            context.cgContext.setFillColor(offDotColor.cgColor)
+                        }
+                        context.cgContext.fillEllipse(in: rect)
                         col += 1
                     }
                     row += 1
@@ -285,28 +286,6 @@ final class LedMarqueeView: UIView {
         return Bitmap(width: width, height: height, data: data)
     }
 
-    private func updateBackground() {
-        guard bounds.width > 0, bounds.height > 0 else { return }
-        let pixelStep = max(dotSize + dotSpacing, 1)
-        let backgroundDotColor = textColor.withAlphaComponent(0.15)
-        let size = bounds.size
-        let renderer = UIGraphicsImageRenderer(size: size)
-        backgroundImageView.image = renderer.image { context in
-            UIColor.clear.setFill()
-            context.fill(CGRect(origin: .zero, size: size))
-            context.cgContext.setFillColor(backgroundDotColor.cgColor)
-            var row: CGFloat = 0
-            while row < size.height {
-                var col: CGFloat = 0
-                while col < size.width {
-                    let rect = CGRect(x: col, y: row, width: dotSize, height: dotSize)
-                    context.cgContext.fillEllipse(in: rect)
-                    col += pixelStep
-                }
-                row += pixelStep
-            }
-        }
-    }
 }
 
 private struct Bitmap {
