@@ -192,66 +192,38 @@ final class LedMarqueeView: UIView {
     }
 
     private func renderPixelTextImage() -> UIImage {
-        let font = UIFont.monospacedSystemFont(ofSize: 32, weight: .bold)
-        let textAttributes: [NSAttributedString.Key: Any] = [
-            .font: font,
-            .foregroundColor: UIColor.white
-        ]
-        let textSize = (text as NSString).size(withAttributes: textAttributes)
-        let canvasSize = CGSize(width: ceil(textSize.width) + 4, height: ceil(textSize.height) + 4)
-
-        let textRenderer = UIGraphicsImageRenderer(size: canvasSize)
-        let textImage = textRenderer.image { context in
-            UIColor.clear.setFill()
-            context.fill(CGRect(origin: .zero, size: canvasSize))
-            (text as NSString).draw(at: CGPoint(x: 2, y: 2), withAttributes: textAttributes)
-        }
-
         let pixelStep = max(dotSize + dotSpacing, 1)
-        let backgroundDotColor = textColor.withAlphaComponent(0.12)
         let glowAlpha = min(max(glowIntensity, 0), 1)
+        let rows = max(Int(bounds.height / pixelStep), 8)
+        let textBitmap = renderTextBitmap(rows: rows)
+        let columns = textBitmap.width
+        let canvasSize = CGSize(width: CGFloat(columns) * pixelStep, height: CGFloat(rows) * pixelStep)
+
         let pixelRenderer = UIGraphicsImageRenderer(size: canvasSize)
         return pixelRenderer.image { context in
             UIColor.clear.setFill()
             context.fill(CGRect(origin: .zero, size: canvasSize))
 
-            let backgroundRect = CGRect(origin: .zero, size: canvasSize)
-            context.cgContext.setFillColor(backgroundDotColor.cgColor)
-            var row: CGFloat = 0
-            while row < backgroundRect.height {
-                var col: CGFloat = 0
-                while col < backgroundRect.width {
-                    let rect = CGRect(x: col, y: row, width: dotSize, height: dotSize)
-                    context.cgContext.fillEllipse(in: rect)
-                    col += pixelStep
-                }
-                row += pixelStep
-            }
-
-            guard let cgImage = textImage.cgImage else { return }
-            let width = cgImage.width
-            let height = cgImage.height
-            guard let data = cgImage.dataProvider?.data as Data? else { return }
-
+            guard let data = textBitmap.data else { return }
             data.withUnsafeBytes { buffer in
                 let bytes = buffer.bindMemory(to: UInt8.self)
                 var row = 0
-                while row < height {
+                while row < rows {
                     var col = 0
-                    while col < width {
-                        let index = (row * width + col) * 4
+                    while col < columns {
+                        let index = (row * columns + col) * 4
                         if index + 3 < bytes.count {
                             let alpha = bytes[index + 3]
-                            if alpha > 40 {
+                            if alpha > 20 {
                                 let rect = CGRect(
-                                    x: CGFloat(col),
-                                    y: CGFloat(row),
+                                    x: CGFloat(col) * pixelStep,
+                                    y: CGFloat(row) * pixelStep,
                                     width: dotSize,
                                     height: dotSize
                                 )
                                 if glowAlpha > 0 {
-                                    let glowRect = rect.insetBy(dx: -dotSize * 0.35, dy: -dotSize * 0.35)
-                                    let glowColor = textColor.withAlphaComponent(glowAlpha * 0.6)
+                                    let glowRect = rect.insetBy(dx: -dotSize * 0.4, dy: -dotSize * 0.4)
+                                    let glowColor = textColor.withAlphaComponent(glowAlpha * 0.7)
                                     context.cgContext.setFillColor(glowColor.cgColor)
                                     context.cgContext.fillEllipse(in: glowRect)
                                 }
@@ -259,11 +231,55 @@ final class LedMarqueeView: UIView {
                                 context.cgContext.fillEllipse(in: rect)
                             }
                         }
-                        col += Int(pixelStep)
+                        col += 1
                     }
-                    row += Int(pixelStep)
+                    row += 1
                 }
             }
         }
     }
+
+    private func renderTextBitmap(rows: Int) -> Bitmap {
+        let fontSize = CGFloat(rows)
+        let font = UIFont.monospacedSystemFont(ofSize: fontSize, weight: .bold)
+        let textAttributes: [NSAttributedString.Key: Any] = [
+            .font: font,
+            .foregroundColor: UIColor.white
+        ]
+        let textSize = (text as NSString).size(withAttributes: textAttributes)
+        let columns = max(Int(ceil(textSize.width)), 1)
+
+        let width = max(columns, 1)
+        let height = max(rows, 1)
+        let bytesPerRow = width * 4
+        let colorSpace = CGColorSpaceCreateDeviceRGB()
+        var data = Data(count: bytesPerRow * height)
+
+        data.withUnsafeMutableBytes { buffer in
+            guard let context = CGContext(
+                data: buffer.baseAddress,
+                width: width,
+                height: height,
+                bitsPerComponent: 8,
+                bytesPerRow: bytesPerRow,
+                space: colorSpace,
+                bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+            ) else { return }
+
+            context.setFillColor(UIColor.clear.cgColor)
+            context.fill(CGRect(x: 0, y: 0, width: width, height: height))
+            let textRect = CGRect(x: 0, y: (CGFloat(rows) - textSize.height) / 2, width: textSize.width, height: textSize.height)
+            UIGraphicsPushContext(context)
+            (text as NSString).draw(in: textRect, withAttributes: textAttributes)
+            UIGraphicsPopContext()
+        }
+
+        return Bitmap(width: width, height: height, data: data)
+    }
+}
+
+private struct Bitmap {
+    let width: Int
+    let height: Int
+    let data: Data?
 }
