@@ -50,6 +50,12 @@ final class LedMarqueeView: UIView {
         }
     }
 
+    var glowIntensity: CGFloat = 0.7 {
+        didSet {
+            updateImages()
+        }
+    }
+
     private let imageView1 = UIImageView()
     private let imageView2 = UIImageView()
     private var displayLink: CADisplayLink?
@@ -201,11 +207,26 @@ final class LedMarqueeView: UIView {
             (text as NSString).draw(at: CGPoint(x: 2, y: 2), withAttributes: textAttributes)
         }
 
-        let pixelStep = dotSize + dotSpacing
+        let pixelStep = max(dotSize + dotSpacing, 1)
+        let backgroundDotColor = textColor.withAlphaComponent(0.12)
+        let glowAlpha = min(max(glowIntensity, 0), 1)
         let pixelRenderer = UIGraphicsImageRenderer(size: canvasSize)
         return pixelRenderer.image { context in
             UIColor.clear.setFill()
             context.fill(CGRect(origin: .zero, size: canvasSize))
+
+            let backgroundRect = CGRect(origin: .zero, size: canvasSize)
+            context.cgContext.setFillColor(backgroundDotColor.cgColor)
+            var row: CGFloat = 0
+            while row < backgroundRect.height {
+                var col: CGFloat = 0
+                while col < backgroundRect.width {
+                    let rect = CGRect(x: col, y: row, width: dotSize, height: dotSize)
+                    context.cgContext.fillEllipse(in: rect)
+                    col += pixelStep
+                }
+                row += pixelStep
+            }
 
             guard let cgImage = textImage.cgImage else { return }
             let width = cgImage.width
@@ -214,8 +235,10 @@ final class LedMarqueeView: UIView {
 
             data.withUnsafeBytes { buffer in
                 let bytes = buffer.bindMemory(to: UInt8.self)
-                for row in stride(from: 0, to: height, by: Int(pixelStep)) {
-                    for col in stride(from: 0, to: width, by: Int(pixelStep)) {
+                var row = 0
+                while row < height {
+                    var col = 0
+                    while col < width {
                         let index = (row * width + col) * 4
                         if index + 3 < bytes.count {
                             let alpha = bytes[index + 3]
@@ -226,11 +249,19 @@ final class LedMarqueeView: UIView {
                                     width: dotSize,
                                     height: dotSize
                                 )
+                                if glowAlpha > 0 {
+                                    let glowRect = rect.insetBy(dx: -dotSize * 0.35, dy: -dotSize * 0.35)
+                                    let glowColor = textColor.withAlphaComponent(glowAlpha * 0.6)
+                                    context.cgContext.setFillColor(glowColor.cgColor)
+                                    context.cgContext.fillEllipse(in: glowRect)
+                                }
                                 context.cgContext.setFillColor(textColor.cgColor)
                                 context.cgContext.fillEllipse(in: rect)
                             }
                         }
+                        col += Int(pixelStep)
                     }
+                    row += Int(pixelStep)
                 }
             }
         }

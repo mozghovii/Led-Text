@@ -9,6 +9,12 @@ final class LedSettingsViewController: UIViewController {
     private let directionControl = UISegmentedControl(items: ["Left", "Right"])
     private let blinkSwitch = UISwitch()
     private let colorControl = UISegmentedControl(items: ["Red", "Green", "Blue", "White", "Yellow"])
+    private let dotSizeSlider = UISlider()
+    private let dotSpacingSlider = UISlider()
+    private let glowSlider = UISlider()
+    private let dotSizeValueLabel = UILabel()
+    private let dotSpacingValueLabel = UILabel()
+    private let glowValueLabel = UILabel()
 
     init(viewModel: LedSettingsViewModel) {
         self.viewModel = viewModel
@@ -71,6 +77,24 @@ final class LedSettingsViewController: UIViewController {
 
         colorControl.selectedSegmentIndex = 0
         colorControl.addTarget(self, action: #selector(colorChanged), for: .valueChanged)
+
+        dotSizeSlider.minimumValue = 3
+        dotSizeSlider.maximumValue = 10
+        dotSizeSlider.addTarget(self, action: #selector(dotSizeChanged), for: .valueChanged)
+
+        dotSpacingSlider.minimumValue = 1
+        dotSpacingSlider.maximumValue = 6
+        dotSpacingSlider.addTarget(self, action: #selector(dotSpacingChanged), for: .valueChanged)
+
+        glowSlider.minimumValue = 0
+        glowSlider.maximumValue = 1
+        glowSlider.addTarget(self, action: #selector(glowChanged), for: .valueChanged)
+
+        [dotSizeValueLabel, dotSpacingValueLabel, glowValueLabel].forEach { label in
+            label.textColor = .white
+            label.font = UIFont.monospacedDigitSystemFont(ofSize: 14, weight: .medium)
+            label.textAlignment = .right
+        }
     }
 
     private func configureLayout() {
@@ -84,12 +108,30 @@ final class LedSettingsViewController: UIViewController {
         speedStack.spacing = 12
         speedValueLabel.widthAnchor.constraint(equalToConstant: 50).isActive = true
 
+        let dotSizeStack = UIStackView(arrangedSubviews: [dotSizeSlider, dotSizeValueLabel])
+        dotSizeStack.axis = .horizontal
+        dotSizeStack.spacing = 12
+        dotSizeValueLabel.widthAnchor.constraint(equalToConstant: 50).isActive = true
+
+        let dotSpacingStack = UIStackView(arrangedSubviews: [dotSpacingSlider, dotSpacingValueLabel])
+        dotSpacingStack.axis = .horizontal
+        dotSpacingStack.spacing = 12
+        dotSpacingValueLabel.widthAnchor.constraint(equalToConstant: 50).isActive = true
+
+        let glowStack = UIStackView(arrangedSubviews: [glowSlider, glowValueLabel])
+        glowStack.axis = .horizontal
+        glowStack.spacing = 12
+        glowValueLabel.widthAnchor.constraint(equalToConstant: 50).isActive = true
+
         contentStack.addArrangedSubview(marqueeView)
         contentStack.addArrangedSubview(makeRow(title: "Text", control: textField))
         contentStack.addArrangedSubview(makeRow(title: "Speed", control: speedStack))
         contentStack.addArrangedSubview(makeRow(title: "Direction", control: directionControl))
         contentStack.addArrangedSubview(makeRow(title: "Blink", control: blinkSwitch))
         contentStack.addArrangedSubview(makeRow(title: "Color", control: colorControl))
+        contentStack.addArrangedSubview(makeRow(title: "Dot Size", control: dotSizeStack))
+        contentStack.addArrangedSubview(makeRow(title: "Dot Gap", control: dotSpacingStack))
+        contentStack.addArrangedSubview(makeRow(title: "Glow", control: glowStack))
 
         view.addSubview(contentStack)
 
@@ -135,6 +177,15 @@ final class LedSettingsViewController: UIViewController {
         marqueeView.direction = settings.direction
         marqueeView.blinkEnabled = settings.blinkEnabled
         marqueeView.textColor = settings.textColor
+        marqueeView.dotSize = settings.dotSize
+        marqueeView.dotSpacing = settings.dotSpacing
+        marqueeView.glowIntensity = settings.glowIntensity
+        dotSizeSlider.value = Float(settings.dotSize)
+        dotSpacingSlider.value = Float(settings.dotSpacing)
+        glowSlider.value = Float(settings.glowIntensity)
+        dotSizeValueLabel.text = String(format: "%.1f", settings.dotSize)
+        dotSpacingValueLabel.text = String(format: "%.1f", settings.dotSpacing)
+        glowValueLabel.text = String(format: "%.2f", settings.glowIntensity)
     }
 
     @objc private func textFieldDidChange() {
@@ -169,6 +220,18 @@ final class LedSettingsViewController: UIViewController {
             color = .systemRed
         }
         viewModel.updateTextColor(color)
+    }
+
+    @objc private func dotSizeChanged() {
+        viewModel.updateDotSize(CGFloat(dotSizeSlider.value))
+    }
+
+    @objc private func dotSpacingChanged() {
+        viewModel.updateDotSpacing(CGFloat(dotSpacingSlider.value))
+    }
+
+    @objc private func glowChanged() {
+        viewModel.updateGlowIntensity(CGFloat(glowSlider.value))
     }
 }
 

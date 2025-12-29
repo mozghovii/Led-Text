@@ -8,6 +8,9 @@ final class LedSettingsViewModel {
         var blinkEnabled: Bool
         var textColor: UIColor
         var backgroundColor: UIColor
+        var dotSize: CGFloat
+        var dotSpacing: CGFloat
+        var glowIntensity: CGFloat
 
         static let `default` = Settings(
             text: "LED Text",
@@ -15,7 +18,10 @@ final class LedSettingsViewModel {
             direction: .left,
             blinkEnabled: false,
             textColor: .systemRed,
-            backgroundColor: .black
+            backgroundColor: .black,
+            dotSize: 6,
+            dotSpacing: 2,
+            glowIntensity: 0.7
         )
     }
 
@@ -53,5 +59,17 @@ final class LedSettingsViewModel {
 
     func updateBackgroundColor(_ color: UIColor) {
         settings.backgroundColor = color
+    }
+
+    func updateDotSize(_ size: CGFloat) {
+        settings.dotSize = size
+    }
+
+    func updateDotSpacing(_ spacing: CGFloat) {
+        settings.dotSpacing = spacing
+    }
+
+    func updateGlowIntensity(_ intensity: CGFloat) {
+        settings.glowIntensity = intensity
     }
 }
