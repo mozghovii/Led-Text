@@ -25,16 +25,21 @@ final class LedSettingsViewModel {
         )
     }
 
-    var onChange: ((Settings) -> Void)?
+    private var observers: [UUID: (Settings) -> Void] = [:]
 
     private(set) var settings: Settings {
         didSet {
-            onChange?(settings)
+            observers.values.forEach { $0(settings) }
         }
     }
 
     init(settings: Settings = .default) {
         self.settings = settings
+    }
+
+    func addObserver(_ observer: @escaping (Settings) -> Void) {
+        observers[UUID()] = observer
+        observer(settings)
     }
 
     func updateText(_ text: String) {

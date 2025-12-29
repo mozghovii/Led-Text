@@ -15,6 +15,7 @@ final class LedSettingsViewController: UIViewController {
     private let dotSizeValueLabel = UILabel()
     private let dotSpacingValueLabel = UILabel()
     private let glowValueLabel = UILabel()
+    private let fullScreenButton = UIButton(type: .system)
 
     init(viewModel: LedSettingsViewModel) {
         self.viewModel = viewModel
@@ -95,6 +96,15 @@ final class LedSettingsViewController: UIViewController {
             label.font = UIFont.monospacedDigitSystemFont(ofSize: 14, weight: .medium)
             label.textAlignment = .right
         }
+
+        fullScreenButton.setTitle("Full Screen Preview", for: .normal)
+        fullScreenButton.setTitleColor(.white, for: .normal)
+        fullScreenButton.titleLabel?.font = UIFont.systemFont(ofSize: 16, weight: .semibold)
+        fullScreenButton.layer.cornerRadius = 8
+        fullScreenButton.layer.borderWidth = 1
+        fullScreenButton.layer.borderColor = UIColor.white.withAlphaComponent(0.6).cgColor
+        fullScreenButton.contentEdgeInsets = UIEdgeInsets(top: 10, left: 14, bottom: 10, right: 14)
+        fullScreenButton.addTarget(self, action: #selector(openFullScreen), for: .touchUpInside)
     }
 
     private func configureLayout() {
@@ -132,6 +142,7 @@ final class LedSettingsViewController: UIViewController {
         contentStack.addArrangedSubview(makeRow(title: "Dot Size", control: dotSizeStack))
         contentStack.addArrangedSubview(makeRow(title: "Dot Gap", control: dotSpacingStack))
         contentStack.addArrangedSubview(makeRow(title: "Glow", control: glowStack))
+        contentStack.addArrangedSubview(fullScreenButton)
 
         view.addSubview(contentStack)
 
@@ -159,7 +170,7 @@ final class LedSettingsViewController: UIViewController {
     }
 
     private func bindViewModel() {
-        viewModel.onChange = { [weak self] settings in
+        viewModel.addObserver { [weak self] settings in
             self?.apply(settings: settings)
         }
     }
@@ -232,6 +243,12 @@ final class LedSettingsViewController: UIViewController {
 
     @objc private func glowChanged() {
         viewModel.updateGlowIntensity(CGFloat(glowSlider.value))
+    }
+
+    @objc private func openFullScreen() {
+        let fullScreenVC = LedFullScreenViewController(viewModel: viewModel)
+        fullScreenVC.modalPresentationStyle = .fullScreen
+        present(fullScreenVC, animated: true)
     }
 }
 
