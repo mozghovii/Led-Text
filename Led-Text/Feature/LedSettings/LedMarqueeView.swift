@@ -64,6 +64,8 @@ final class LedMarqueeView: UIView {
     private var offset: CGFloat = 0
     private var isBlinkOn: Bool = true
     private var cachedBitmap: Bitmap?
+    private var contentColumns: Int = 0
+    private var contentWidth: CGFloat = 0
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -145,11 +147,12 @@ final class LedMarqueeView: UIView {
 
         let directionMultiplier: CGFloat = direction == .left ? -1 : 1
         let pixelStep = max(dotSize + dotSpacing, 1)
-        let referenceWidth = max(UIScreen.main.bounds.width, UIScreen.main.bounds.height)
-        let widthScale = max(bounds.width / referenceWidth, 0.35)
-        let offset = scrollSpeed * pixelStep * widthScale * smoothedDelta * directionMultiplier
+        let offsetDelta = scrollSpeed * pixelStep * smoothedDelta * directionMultiplier
 
-        self.offset += offset
+        offset += offsetDelta
+        if contentWidth > 0 {
+            offset = offset.truncatingRemainder(dividingBy: contentWidth)
+        }
         setNeedsDisplay()
     }
 
@@ -159,11 +162,9 @@ final class LedMarqueeView: UIView {
         let pixelStep = max(dotSize + dotSpacing, 1)
         let rows = max(Int(bounds.height / pixelStep), 1)
         let columns = max(Int(bounds.width / pixelStep), 1)
-        let gapColumns = max(Int(ceil(spacing / pixelStep)), 1)
-        let textWidth = bitmap.width + gapColumns
+        let textWidth = contentColumns > 0 ? contentColumns : bitmap.width
 
-        let totalShift = offset
-        let shift = totalShift / pixelStep
+        let shift = offset / pixelStep
         let shiftBase = Int(floor(shift))
         let shiftFraction = abs(shift - CGFloat(shiftBase))
 
@@ -212,6 +213,9 @@ final class LedMarqueeView: UIView {
         let pixelStep = max(dotSize + dotSpacing, 1)
         let rows = max(Int(bounds.height / pixelStep), 8)
         let textBitmap = renderTextBitmap(rows: rows)
+        let gapColumns = max(Int(ceil(spacing / pixelStep)), 1)
+        contentColumns = textBitmap.width + gapColumns
+        contentWidth = CGFloat(contentColumns) * pixelStep
         cachedBitmap = textBitmap
     }
 
