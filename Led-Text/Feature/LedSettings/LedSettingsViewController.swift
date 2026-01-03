@@ -246,7 +246,9 @@ final class LedSettingsViewController: UIViewController {
     }
 
     @objc private func openFullScreen() {
-        let fullScreenVC = LedFullScreenViewController(viewModel: viewModel)
+        view.layoutIfNeeded()
+        let previewWidth = marqueeView.bounds.width
+        let fullScreenVC = LedFullScreenViewController(viewModel: viewModel, previewWidth: previewWidth)
         fullScreenVC.modalPresentationStyle = .fullScreen
         present(fullScreenVC, animated: true)
     }
