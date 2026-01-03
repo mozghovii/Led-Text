@@ -67,7 +67,7 @@ final class LedSettingsViewController: UIViewController {
         textField.setLeftPadding(12)
         textField.addTarget(self, action: #selector(textFieldDidChange), for: .editingChanged)
 
-        speedSlider.minimumValue = 1
+        speedSlider.minimumValue = 20
         speedSlider.maximumValue = 100
         speedSlider.addTarget(self, action: #selector(speedChanged), for: .valueChanged)
         speedValueLabel.textColor = .white
