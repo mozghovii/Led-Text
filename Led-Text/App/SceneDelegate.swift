@@ -14,13 +14,7 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         let window = UIWindow(windowScene: windowScene)
         let navigationController = UINavigationController()
 
-        // TODO: Replace with real baseURL
-        let network = NetworkService(baseURL: URL(string: "https://example.com")!)
-
-        let rootCoordinator = ArchExampleCoordinator(
-            navigationController: navigationController,
-            network: network
-        )
+        let rootCoordinator = LedTextCoordinator(navigationController: navigationController)
         rootCoordinator.start()
 
         window.rootViewController = navigationController
