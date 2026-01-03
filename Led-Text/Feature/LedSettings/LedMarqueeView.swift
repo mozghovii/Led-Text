@@ -146,7 +146,9 @@ final class LedMarqueeView: UIView {
 
         let directionMultiplier: CGFloat = direction == .left ? -1 : 1
         let pixelStep = max(dotSize + dotSpacing, 1)
-        let offset = scrollSpeed * pixelStep * smoothedDelta * directionMultiplier
+        let referenceWidth = max(UIScreen.main.bounds.width, UIScreen.main.bounds.height)
+        let widthScale = max(bounds.width / referenceWidth, 0.35)
+        let offset = scrollSpeed * pixelStep * widthScale * smoothedDelta * directionMultiplier
 
         self.offset += offset
         setNeedsDisplay()
