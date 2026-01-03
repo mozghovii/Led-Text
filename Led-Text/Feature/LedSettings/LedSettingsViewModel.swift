@@ -6,6 +6,7 @@ final class LedSettingsViewModel {
         var speed: CGFloat
         var direction: LedMarqueeView.Direction
         var blinkEnabled: Bool
+        var blinkInterval: TimeInterval
         var textColor: UIColor
         var backgroundColor: UIColor
         var dotSize: CGFloat
@@ -17,6 +18,7 @@ final class LedSettingsViewModel {
             speed: 60,
             direction: .left,
             blinkEnabled: false,
+            blinkInterval: 0.6,
             textColor: .systemRed,
             backgroundColor: .black,
             dotSize: 6,
@@ -56,6 +58,10 @@ final class LedSettingsViewModel {
 
     func updateBlinkEnabled(_ enabled: Bool) {
         settings.blinkEnabled = enabled
+    }
+
+    func updateBlinkInterval(_ interval: TimeInterval) {
+        settings.blinkInterval = interval
     }
 
     func updateTextColor(_ color: UIColor) {

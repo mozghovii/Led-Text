@@ -8,6 +8,8 @@ final class LedSettingsViewController: UIViewController {
     private let speedValueLabel = UILabel()
     private let directionControl = UISegmentedControl(items: ["Left", "Right"])
     private let blinkSwitch = UISwitch()
+    private let blinkRateSlider = UISlider()
+    private let blinkRateValueLabel = UILabel()
     private let colorControl = UISegmentedControl(items: ["Red", "Green", "Blue", "White", "Yellow"])
     private let dotSizeSlider = UISlider()
     private let dotSpacingSlider = UISlider()
@@ -98,6 +100,13 @@ final class LedSettingsViewController: UIViewController {
             label.textAlignment = .right
         }
 
+        blinkRateSlider.minimumValue = 0.2
+        blinkRateSlider.maximumValue = 2.0
+        blinkRateSlider.addTarget(self, action: #selector(blinkRateChanged), for: .valueChanged)
+        blinkRateValueLabel.textColor = .white
+        blinkRateValueLabel.font = UIFont.monospacedDigitSystemFont(ofSize: 14, weight: .medium)
+        blinkRateValueLabel.textAlignment = .right
+
         fullScreenButton.setTitle("Full Screen Preview", for: .normal)
         fullScreenButton.setTitleColor(.white, for: .normal)
         fullScreenButton.titleLabel?.font = UIFont.systemFont(ofSize: 16, weight: .semibold)
@@ -134,11 +143,17 @@ final class LedSettingsViewController: UIViewController {
         glowStack.spacing = 12
         glowValueLabel.widthAnchor.constraint(equalToConstant: 50).isActive = true
 
+        let blinkRateStack = UIStackView(arrangedSubviews: [blinkRateSlider, blinkRateValueLabel])
+        blinkRateStack.axis = .horizontal
+        blinkRateStack.spacing = 12
+        blinkRateValueLabel.widthAnchor.constraint(equalToConstant: 50).isActive = true
+
         contentStack.addArrangedSubview(marqueeView)
         contentStack.addArrangedSubview(makeRow(title: "Text", control: textField))
         contentStack.addArrangedSubview(makeRow(title: "Speed", control: speedStack))
         contentStack.addArrangedSubview(makeRow(title: "Direction", control: directionControl))
         contentStack.addArrangedSubview(makeRow(title: "Blink", control: blinkSwitch))
+        contentStack.addArrangedSubview(makeRow(title: "Blink Rate", control: blinkRateStack))
         contentStack.addArrangedSubview(makeRow(title: "Color", control: colorControl))
         contentStack.addArrangedSubview(makeRow(title: "Dot Size", control: dotSizeStack))
         contentStack.addArrangedSubview(makeRow(title: "Dot Gap", control: dotSpacingStack))
@@ -188,6 +203,7 @@ final class LedSettingsViewController: UIViewController {
         marqueeView.scrollSpeed = settings.speed
         marqueeView.direction = settings.direction
         marqueeView.blinkEnabled = settings.blinkEnabled
+        marqueeView.blinkInterval = settings.blinkInterval
         marqueeView.textColor = settings.textColor
         marqueeView.dotSize = settings.dotSize
         marqueeView.dotSpacing = settings.dotSpacing
@@ -198,6 +214,8 @@ final class LedSettingsViewController: UIViewController {
         dotSizeValueLabel.text = String(format: "%.1f", settings.dotSize)
         dotSpacingValueLabel.text = String(format: "%.1f", settings.dotSpacing)
         glowValueLabel.text = String(format: "%.2f", settings.glowIntensity)
+        blinkRateSlider.value = Float(settings.blinkInterval)
+        blinkRateValueLabel.text = String(format: "%.2f", settings.blinkInterval)
     }
 
     @objc private func textFieldDidChange() {
@@ -219,6 +237,12 @@ final class LedSettingsViewController: UIViewController {
 
     @objc private func blinkChanged() {
         viewModel.updateBlinkEnabled(blinkSwitch.isOn)
+    }
+
+    @objc private func blinkRateChanged() {
+        let interval = TimeInterval(blinkRateSlider.value)
+        blinkRateValueLabel.text = String(format: "%.2f", interval)
+        viewModel.updateBlinkInterval(interval)
     }
 
     @objc private func colorChanged() {

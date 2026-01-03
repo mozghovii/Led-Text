@@ -162,8 +162,7 @@ final class LedMarqueeView: UIView {
         let gapColumns = max(Int(ceil(spacing / pixelStep)), 1)
         let textWidth = bitmap.width + gapColumns
 
-        let directionMultiplier: CGFloat = direction == .left ? -1 : 1
-        let totalShift = offset * directionMultiplier
+        let totalShift = offset
         let shift = totalShift / pixelStep
         let shiftBase = Int(floor(shift))
         let shiftFraction = abs(shift - CGFloat(shiftBase))
