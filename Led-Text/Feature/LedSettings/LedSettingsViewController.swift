@@ -21,6 +21,7 @@ final class LedSettingsViewController: UIViewController {
     private let previewContainer = UIView()
     private let controlsContainer = UIVisualEffectView(effect: UIBlurEffect(style: .systemUltraThinMaterialDark))
     private let controlsOverlay = UIView()
+    private var blinkRateRow: UIStackView?
     private var textDebounceTimer: Timer?
 
     init(viewModel: LedSettingsViewModel) {
@@ -57,7 +58,7 @@ final class LedSettingsViewController: UIViewController {
     private func configureMarquee() {
         previewContainer.translatesAutoresizingMaskIntoConstraints = false
         previewContainer.backgroundColor = .black
-        previewContainer.layer.cornerRadius = 20
+        previewContainer.layer.cornerRadius = 24
         previewContainer.layer.borderWidth = 1
         previewContainer.layer.borderColor = UIColor.white.withAlphaComponent(0.08).cgColor
         previewContainer.clipsToBounds = true
@@ -152,12 +153,12 @@ final class LedSettingsViewController: UIViewController {
 
     private func configureLayout() {
         controlsContainer.translatesAutoresizingMaskIntoConstraints = false
-        controlsContainer.layer.cornerRadius = 20
+        controlsContainer.layer.cornerRadius = 24
         controlsContainer.layer.maskedCorners = [.layerMinXMinYCorner, .layerMaxXMinYCorner]
         controlsContainer.clipsToBounds = true
 
         controlsOverlay.translatesAutoresizingMaskIntoConstraints = false
-        controlsOverlay.backgroundColor = UIColor.black.withAlphaComponent(0.35)
+        controlsOverlay.backgroundColor = UIColor.black.withAlphaComponent(0.6)
         controlsContainer.contentView.addSubview(controlsOverlay)
         NSLayoutConstraint.activate([
             controlsOverlay.leadingAnchor.constraint(equalTo: controlsContainer.contentView.leadingAnchor),
@@ -168,40 +169,30 @@ final class LedSettingsViewController: UIViewController {
 
         let contentStack = UIStackView()
         contentStack.axis = .vertical
-        contentStack.spacing = 16
+        contentStack.spacing = 10
         contentStack.alignment = .fill
         contentStack.translatesAutoresizingMaskIntoConstraints = false
 
-        let textSection = makeSectionStack()
-        textSection.addArrangedSubview(makeRow(iconName: "textformat", control: textField))
+        let textRow = makeRow(iconName: "textformat.size", control: textField, height: 48)
+        let speedRow = makeRow(iconName: "speedometer", control: speedSlider, height: 44)
+        let directionRow = makeRow(iconName: "arrow.left.arrow.right", control: directionControl, height: 44)
+        let blinkRow = makeRow(iconName: "bolt", control: blinkSwitch, height: 44)
+        let blinkRateRow = makeRow(iconName: "waveform.path.ecg", control: blinkRateSlider, height: 44)
+        let dotSizeRow = makeRow(iconName: "circle.grid.2x2", control: dotSizeSlider, height: 44)
+        let dotSpacingRow = makeRow(iconName: "rectangle.split.3x1", control: dotSpacingSlider, height: 44)
+        let glowRow = makeRow(iconName: "sun.max", control: glowSlider, height: 44)
+        let colorRow = makeRow(iconName: "paintpalette", control: colorControl, height: 44)
+        self.blinkRateRow = blinkRateRow
 
-        let motionSection = makeSectionStack()
-        motionSection.addArrangedSubview(makeRow(iconName: "speedometer", control: speedSlider))
-        motionSection.addArrangedSubview(makeRow(iconName: "arrow.left.arrow.right", control: directionControl))
-
-        let effectsSection = makeSectionStack()
-        effectsSection.addArrangedSubview(makeRow(iconName: "bolt", control: blinkSwitch))
-        effectsSection.addArrangedSubview(makeRow(iconName: "timer", control: blinkRateSlider))
-        effectsSection.addArrangedSubview(makeRow(iconName: "sun.max", control: glowSlider))
-
-        let appearanceSection = makeSectionStack()
-        appearanceSection.addArrangedSubview(makeRow(iconName: "paintpalette", control: colorControl))
-        appearanceSection.addArrangedSubview(makeRow(iconName: "circle.grid.2x2", control: dotSizeSlider))
-        appearanceSection.addArrangedSubview(makeRow(iconName: "rectangle.split.3x1", control: dotSpacingSlider))
-
-        let buttonSpacer = UIView()
-        buttonSpacer.translatesAutoresizingMaskIntoConstraints = false
-        buttonSpacer.setContentHuggingPriority(.defaultLow, for: .vertical)
-        buttonSpacer.setContentCompressionResistancePriority(.defaultLow, for: .vertical)
-
-        contentStack.addArrangedSubview(textSection)
-        contentStack.addArrangedSubview(makeSeparator())
-        contentStack.addArrangedSubview(motionSection)
-        contentStack.addArrangedSubview(makeSeparator())
-        contentStack.addArrangedSubview(effectsSection)
-        contentStack.addArrangedSubview(makeSeparator())
-        contentStack.addArrangedSubview(appearanceSection)
-        contentStack.addArrangedSubview(buttonSpacer)
+        contentStack.addArrangedSubview(textRow)
+        contentStack.addArrangedSubview(speedRow)
+        contentStack.addArrangedSubview(directionRow)
+        contentStack.addArrangedSubview(blinkRow)
+        contentStack.addArrangedSubview(blinkRateRow)
+        contentStack.addArrangedSubview(dotSizeRow)
+        contentStack.addArrangedSubview(dotSpacingRow)
+        contentStack.addArrangedSubview(glowRow)
+        contentStack.addArrangedSubview(colorRow)
         contentStack.addArrangedSubview(fullScreenButton)
 
         view.addSubview(previewContainer)
@@ -212,62 +203,45 @@ final class LedSettingsViewController: UIViewController {
         NSLayoutConstraint.activate([
             previewContainer.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
             previewContainer.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
-            previewContainer.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 20),
-            previewContainer.heightAnchor.constraint(equalTo: view.heightAnchor, multiplier: 0.65),
+            previewContainer.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 16),
+            previewContainer.bottomAnchor.constraint(equalTo: controlsContainer.topAnchor, constant: -12),
 
             marqueeView.leadingAnchor.constraint(equalTo: previewContainer.leadingAnchor, constant: 16),
             marqueeView.trailingAnchor.constraint(equalTo: previewContainer.trailingAnchor, constant: -16),
             marqueeView.centerYAnchor.constraint(equalTo: previewContainer.centerYAnchor),
-            marqueeView.heightAnchor.constraint(equalTo: previewContainer.heightAnchor, multiplier: 0.3),
+            marqueeView.heightAnchor.constraint(equalTo: previewContainer.heightAnchor, multiplier: 0.32),
 
             controlsContainer.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             controlsContainer.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            controlsContainer.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-            controlsContainer.topAnchor.constraint(equalTo: previewContainer.bottomAnchor, constant: 12),
+            controlsContainer.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
+            controlsContainer.heightAnchor.constraint(equalToConstant: 280),
 
-            contentStack.leadingAnchor.constraint(equalTo: controlsContainer.contentView.leadingAnchor, constant: 20),
-            contentStack.trailingAnchor.constraint(equalTo: controlsContainer.contentView.trailingAnchor, constant: -20),
-            contentStack.topAnchor.constraint(equalTo: controlsContainer.contentView.topAnchor, constant: 18),
-            contentStack.bottomAnchor.constraint(equalTo: controlsContainer.contentView.safeAreaLayoutGuide.bottomAnchor, constant: -18)
+            contentStack.leadingAnchor.constraint(equalTo: controlsContainer.contentView.leadingAnchor, constant: 16),
+            contentStack.trailingAnchor.constraint(equalTo: controlsContainer.contentView.trailingAnchor, constant: -16),
+            contentStack.topAnchor.constraint(equalTo: controlsContainer.contentView.topAnchor, constant: 16),
+            contentStack.bottomAnchor.constraint(equalTo: controlsContainer.contentView.safeAreaLayoutGuide.bottomAnchor, constant: -16)
         ])
 
         fullScreenButton.heightAnchor.constraint(equalToConstant: 52).isActive = true
     }
 
-    private func makeRow(iconName: String, control: UIView) -> UIStackView {
+    private func makeRow(iconName: String, control: UIView, height: CGFloat) -> UIStackView {
         let iconView = UIImageView(image: UIImage(systemName: iconName))
         iconView.translatesAutoresizingMaskIntoConstraints = false
         iconView.tintColor = UIColor.white.withAlphaComponent(0.7)
         iconView.contentMode = .scaleAspectFit
         NSLayoutConstraint.activate([
-            iconView.widthAnchor.constraint(equalToConstant: 20),
-            iconView.heightAnchor.constraint(equalToConstant: 20)
+            iconView.widthAnchor.constraint(equalToConstant: 24),
+            iconView.heightAnchor.constraint(equalToConstant: 24)
         ])
 
         let rowStack = UIStackView(arrangedSubviews: [iconView, control])
         rowStack.axis = .horizontal
-        rowStack.spacing = 14
+        rowStack.spacing = 12
         rowStack.alignment = .center
+        rowStack.translatesAutoresizingMaskIntoConstraints = false
+        rowStack.heightAnchor.constraint(equalToConstant: height).isActive = true
         return rowStack
-    }
-
-    private func makeSectionStack() -> UIStackView {
-        let stack = UIStackView()
-        stack.axis = .vertical
-        stack.spacing = 12
-        stack.isLayoutMarginsRelativeArrangement = true
-        stack.layoutMargins = UIEdgeInsets(top: 4, left: 0, bottom: 4, right: 0)
-        return stack
-    }
-
-    private func makeSeparator() -> UIView {
-        let separator = UIView()
-        separator.translatesAutoresizingMaskIntoConstraints = false
-        separator.backgroundColor = UIColor.white.withAlphaComponent(0.12)
-        NSLayoutConstraint.activate([
-            separator.heightAnchor.constraint(equalToConstant: 1)
-        ])
-        return separator
     }
 
     private func styleSlider(_ slider: UISlider) {
@@ -340,6 +314,8 @@ final class LedSettingsViewController: UIViewController {
         marqueeView.glowIntensity = settings.glowIntensity
         colorControl.selectedSegmentIndex = colorSegmentIndex(for: settings.textColor)
         updateColorControlImages(selectedIndex: colorControl.selectedSegmentIndex)
+        blinkRateRow?.isHidden = !settings.blinkEnabled
+        blinkRateSlider.isEnabled = settings.blinkEnabled
         dotSizeSlider.value = Float(settings.dotSize)
         dotSpacingSlider.value = Float(settings.dotSpacing)
         glowSlider.value = Float(settings.glowIntensity)
