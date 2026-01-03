@@ -114,7 +114,6 @@ final class LedMarqueeView: UIView {
     }
 
     private func updateImages() {
-        offset = 0
         cacheBitmap()
         setNeedsDisplay()
     }
