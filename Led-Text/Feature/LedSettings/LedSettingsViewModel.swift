@@ -43,7 +43,7 @@ final class LedSettingsViewModel {
     }
 
     func updateText(_ text: String) {
-        settings.text = text.isEmpty ? Settings.default.text : text
+        settings.text = text
     }
 
     func updateSpeed(_ speed: CGFloat) {

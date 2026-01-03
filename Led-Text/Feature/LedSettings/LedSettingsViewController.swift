@@ -16,6 +16,7 @@ final class LedSettingsViewController: UIViewController {
     private let dotSpacingValueLabel = UILabel()
     private let glowValueLabel = UILabel()
     private let fullScreenButton = UIButton(type: .system)
+    private var textDebounceTimer: Timer?
 
     init(viewModel: LedSettingsViewModel) {
         self.viewModel = viewModel
@@ -200,7 +201,11 @@ final class LedSettingsViewController: UIViewController {
     }
 
     @objc private func textFieldDidChange() {
-        viewModel.updateText(textField.text ?? "")
+        textDebounceTimer?.invalidate()
+        let latestText = textField.text ?? ""
+        textDebounceTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: false) { [weak self] _ in
+            self?.viewModel.updateText(latestText)
+        }
     }
 
     @objc private func speedChanged() {
