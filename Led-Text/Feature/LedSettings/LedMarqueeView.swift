@@ -7,64 +7,60 @@ final class LedMarqueeView: UIView {
     }
 
     var text: String = "LED Text" {
-        didSet {
-            updateImages()
-        }
+        didSet { updateImages() }
     }
 
     var textColor: UIColor = .systemRed {
-        didSet {
-            updateImages()
-        }
+        didSet { updateImages() }
     }
 
     var scrollSpeed: CGFloat = 60
 
     var direction: Direction = .left {
-        didSet {
-            setNeedsDisplay()
-        }
+        didSet { updateImageFrames() }
     }
 
     var blinkEnabled: Bool = false {
-        didSet {
-            configureBlinkTimer()
-        }
+        didSet { configureBlinkTimer() }
     }
 
     var blinkInterval: TimeInterval = 0.6 {
-        didSet {
-            configureBlinkTimer()
-        }
+        didSet { configureBlinkTimer() }
     }
 
     var dotSize: CGFloat = 6 {
-        didSet {
-            updateImages()
-        }
+        didSet { updateImages() }
     }
 
     var dotSpacing: CGFloat = 2 {
-        didSet {
-            updateImages()
-        }
+        didSet { updateImages() }
     }
 
     var glowIntensity: CGFloat = 0.7 {
-        didSet {
-            updateImages()
-        }
+        didSet { updateImages() }
     }
 
+    var font: UIFont = UIFont.monospacedSystemFont(ofSize: 32, weight: .bold) {
+        didSet { updateImages() }
+    }
+
+    var letterSpacing: CGFloat = 0 {
+        didSet { updateImages() }
+    }
+
+    var dotMatrixEnabled: Bool = true {
+        didSet { updateImages() }
+    }
+
+    private let imageView1 = UIImageView()
+    private let imageView2 = UIImageView()
     private var displayLink: CADisplayLink?
     private var lastTimestamp: CFTimeInterval = 0
-    private var smoothedDelta: CGFloat = 0
     private var blinkTimer: Timer?
     private let spacing: CGFloat = 40
     private var offset: CGFloat = 0
     private var isBlinkOn: Bool = true
     private var cachedBitmap: Bitmap?
-    private var contentColumns: Int = 0
     private var contentWidth: CGFloat = 0
 
     override init(frame: CGRect) {
@@ -101,36 +97,66 @@ final class LedMarqueeView: UIView {
         blinkTimer?.invalidate()
         blinkTimer = nil
         isBlinkOn = true
-        setNeedsDisplay()
+        updateImageAlpha()
     }
 
     override func layoutSubviews() {
         super.layoutSubviews()
-        cacheBitmap()
-        setNeedsDisplay()
+        updateImages()
     }
 
     private func configureView() {
         clipsToBounds = true
-        cacheBitmap()
+        imageView1.contentMode = .left
+        imageView2.contentMode = .left
+        addSubview(imageView1)
+        addSubview(imageView2)
+        updateImages()
     }
 
     private func updateImages() {
         cacheBitmap()
-        setNeedsDisplay()
+        let image = renderContentImage()
+        imageView1.image = image
+        imageView2.image = image
+        contentWidth = image.size.width
+        updateImageFrames()
+        updateImageAlpha()
+    }
+
+    private func updateImageFrames() {
+        guard let image = imageView1.image, contentWidth > 0 else { return }
+        let y = (bounds.height - image.size.height) / 2
+        let x = offset
+
+        switch direction {
+        case .left:
+            imageView1.frame = CGRect(x: x, y: y, width: image.size.width, height: image.size.height)
+            imageView2.frame = CGRect(x: x + contentWidth, y: y, width: image.size.width, height: image.size.height)
+        case .right:
+            imageView1.frame = CGRect(x: x, y: y, width: image.size.width, height: image.size.height)
+            imageView2.frame = CGRect(x: x - contentWidth, y: y, width: image.size.width, height: image.size.height)
+        }
+    }
+
+    private func updateImageAlpha() {
+        let alpha: CGFloat = isBlinkOn ? 1 : 0.2
+        imageView1.alpha = alpha
+        imageView2.alpha = alpha
     }
 
     private func configureBlinkTimer() {
         blinkTimer?.invalidate()
         blinkTimer = nil
         isBlinkOn = true
+        updateImageAlpha()
 
         guard blinkEnabled else { return }
 
         blinkTimer = Timer.scheduledTimer(withTimeInterval: blinkInterval, repeats: true) { [weak self] _ in
             guard let self else { return }
             self.isBlinkOn.toggle()
-            self.setNeedsDisplay()
+            self.updateImageAlpha()
         }
     }
 
@@ -142,97 +168,116 @@ final class LedMarqueeView: UIView {
 
         let delta = CGFloat(link.timestamp - lastTimestamp)
         lastTimestamp = link.timestamp
-        let smoothingFactor: CGFloat = 0.12
-        smoothedDelta = smoothedDelta == 0 ? delta : (smoothedDelta * (1 - smoothingFactor) + delta * smoothingFactor)
 
         let directionMultiplier: CGFloat = direction == .left ? -1 : 1
-        let pixelStep = max(dotSize + dotSpacing, 1)
-        let offsetDelta = scrollSpeed * pixelStep * smoothedDelta * directionMultiplier
+        let pixelStep = dotMatrixEnabled ? max(dotSize + dotSpacing, 1) : 1
+        let offsetDelta = scrollSpeed * pixelStep * delta * directionMultiplier
 
         offset += offsetDelta
         if contentWidth > 0 {
-            offset = offset.truncatingRemainder(dividingBy: contentWidth)
+            if direction == .left, offset <= -contentWidth {
+                offset += contentWidth
+            } else if direction == .right, offset >= contentWidth {
+                offset -= contentWidth
+            }
         }
-        setNeedsDisplay()
+
+        updateImageFrames()
     }
 
-    override func draw(_ rect: CGRect) {
-        super.draw(rect)
-        guard let bitmap = cachedBitmap else { return }
-        let pixelStep = max(dotSize + dotSpacing, 1)
-        let rows = max(Int(bounds.height / pixelStep), 1)
-        let columns = max(Int(bounds.width / pixelStep), 1)
-        let textWidth = contentColumns > 0 ? contentColumns : bitmap.width
+    private func renderContentImage() -> UIImage {
+        if dotMatrixEnabled {
+            return renderDotMatrixImage()
+        }
+        return renderPlainTextImage()
+    }
 
-        let shift = offset / pixelStep
-        let shiftBase = Int(floor(shift))
-        let shiftFraction = abs(shift - CGFloat(shiftBase))
+    private func renderDotMatrixImage() -> UIImage {
+        let pixelStep = max(dotSize + dotSpacing, 1)
+        let rows = max(Int(bounds.height / pixelStep), Int(ceil(font.lineHeight)))
+        let textBitmap = cachedBitmap ?? renderTextBitmap(rows: rows)
+        let gapColumns = max(Int(ceil(spacing / pixelStep)), 1)
+        let columns = textBitmap.width + gapColumns
+        let canvasSize = CGSize(width: CGFloat(columns) * pixelStep, height: CGFloat(rows) * pixelStep)
 
         let offDotColor = textColor.withAlphaComponent(0.12)
         let glowAlpha = min(max(glowIntensity, 0), 1)
-        let activeAlphaThreshold: UInt8 = 20
+        let renderer = UIGraphicsImageRenderer(size: canvasSize)
+        return renderer.image { context in
+            UIColor.clear.setFill()
+            context.fill(CGRect(origin: .zero, size: canvasSize))
 
-        guard let context = UIGraphicsGetCurrentContext() else { return }
-        context.clear(rect)
+            guard let data = textBitmap.data else { return }
+            data.withUnsafeBytes { buffer in
+                let bytes = buffer.bindMemory(to: UInt8.self)
+                for row in 0..<rows {
+                    for col in 0..<columns {
+                        let index = (row * textBitmap.width + col) * 4
+                        let alpha: UInt8
+                        if col < textBitmap.width, index + 3 < bytes.count {
+                            alpha = bytes[index + 3]
+                        } else {
+                            alpha = 0
+                        }
 
-        for row in 0..<rows {
-            for col in 0..<columns {
-                let mappedCol = (col + shiftBase).modulo(textWidth)
-                let mappedNextCol = (mappedCol + 1).modulo(textWidth)
+                        let rect = CGRect(
+                            x: CGFloat(col) * pixelStep,
+                            y: CGFloat(row) * pixelStep,
+                            width: dotSize,
+                            height: dotSize
+                        )
 
-                let alphaA = sampleAlpha(bitmap: bitmap, row: row, col: mappedCol)
-                let alphaB = sampleAlpha(bitmap: bitmap, row: row, col: mappedNextCol)
-                let blendedAlpha = (CGFloat(alphaA) * (1 - shiftFraction)) + (CGFloat(alphaB) * shiftFraction)
-
-                let rect = CGRect(
-                    x: CGFloat(col) * pixelStep,
-                    y: CGFloat(row) * pixelStep,
-                    width: dotSize,
-                    height: dotSize
-                )
-
-                if blendedAlpha > CGFloat(activeAlphaThreshold), isBlinkOn {
-                    if glowAlpha > 0 {
-                        let glowRect = rect.insetBy(dx: -dotSize * 0.4, dy: -dotSize * 0.4)
-                        let glowScale = min(blendedAlpha / 255, 1)
-                        let glowColor = textColor.withAlphaComponent(glowAlpha * 0.7 * glowScale)
-                        context.setFillColor(glowColor.cgColor)
-                        context.fillEllipse(in: glowRect)
+                        if alpha > 20 {
+                            if glowAlpha > 0 {
+                                let glowRect = rect.insetBy(dx: -dotSize * 0.4, dy: -dotSize * 0.4)
+                                let glowColor = textColor.withAlphaComponent(glowAlpha * 0.7)
+                                context.cgContext.setFillColor(glowColor.cgColor)
+                                context.cgContext.fillEllipse(in: glowRect)
+                            }
+                            context.cgContext.setFillColor(textColor.cgColor)
+                        } else {
+                            context.cgContext.setFillColor(offDotColor.cgColor)
+                        }
+                        context.cgContext.fillEllipse(in: rect)
                     }
-                    let fillScale = min(blendedAlpha / 255, 1)
-                    context.setFillColor(textColor.withAlphaComponent(fillScale).cgColor)
-                } else {
-                    context.setFillColor(offDotColor.cgColor)
                 }
-                context.fillEllipse(in: rect)
             }
         }
     }
 
-    private func cacheBitmap() {
-        let pixelStep = max(dotSize + dotSpacing, 1)
-        let rows = max(Int(bounds.height / pixelStep), 8)
-        let textBitmap = renderTextBitmap(rows: rows)
-        let gapColumns = max(Int(ceil(spacing / pixelStep)), 1)
-        contentColumns = textBitmap.width + gapColumns
-        contentWidth = CGFloat(contentColumns) * pixelStep
-        cachedBitmap = textBitmap
+    private func renderPlainTextImage() -> UIImage {
+        let attributes: [NSAttributedString.Key: Any] = [
+            .font: font,
+            .foregroundColor: textColor,
+            .kern: letterSpacing
+        ]
+        let textSize = (text as NSString).size(withAttributes: attributes)
+        let imageSize = CGSize(width: ceil(textSize.width) + spacing, height: ceil(textSize.height) + 4)
+
+        let renderer = UIGraphicsImageRenderer(size: imageSize)
+        return renderer.image { context in
+            UIColor.clear.setFill()
+            context.fill(CGRect(origin: .zero, size: imageSize))
+            context.cgContext.setShadow(offset: .zero, blur: 8, color: textColor.withAlphaComponent(glowIntensity).cgColor)
+            (text as NSString).draw(at: CGPoint(x: 0, y: 2), withAttributes: attributes)
+        }
     }
 
-    private func sampleAlpha(bitmap: Bitmap, row: Int, col: Int) -> UInt8 {
-        guard col >= 0, row >= 0, col < bitmap.width, row < bitmap.height else { return 0 }
-        guard let data = bitmap.data else { return 0 }
-        let index = (row * bitmap.width + col) * 4
-        guard index + 3 < data.count else { return 0 }
-        return data[index + 3]
+    private func cacheBitmap() {
+        guard dotMatrixEnabled else {
+            cachedBitmap = nil
+            return
+        }
+        let pixelStep = max(dotSize + dotSpacing, 1)
+        let rows = max(Int(bounds.height / pixelStep), Int(ceil(font.lineHeight)))
+        cachedBitmap = renderTextBitmap(rows: rows)
     }
 
     private func renderTextBitmap(rows: Int) -> Bitmap {
-        let fontSize = CGFloat(rows)
-        let font = UIFont.monospacedSystemFont(ofSize: fontSize, weight: .bold)
         let textAttributes: [NSAttributedString.Key: Any] = [
             .font: font,
-            .foregroundColor: UIColor.white
+            .foregroundColor: UIColor.white,
+            .kern: letterSpacing
         ]
         let textSize = (text as NSString).size(withAttributes: textAttributes)
         let columns = max(Int(ceil(textSize.width)), 1)
@@ -266,19 +311,10 @@ final class LedMarqueeView: UIView {
 
         return Bitmap(width: width, height: height, data: data)
     }
-
 }
 
 private struct Bitmap {
     let width: Int
     let height: Int
     let data: Data?
-}
-
-private extension Int {
-    func modulo(_ modulus: Int) -> Int {
-        guard modulus != 0 else { return 0 }
-        let result = self % modulus
-        return result >= 0 ? result : result + modulus
-    }
 }

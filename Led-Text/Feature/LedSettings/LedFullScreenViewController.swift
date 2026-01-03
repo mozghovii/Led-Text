@@ -62,10 +62,14 @@ final class LedFullScreenViewController: UIViewController {
         marqueeView.scrollSpeed = settings.speed
         marqueeView.direction = settings.direction
         marqueeView.blinkEnabled = settings.blinkEnabled
+        marqueeView.blinkInterval = settings.blinkInterval
         marqueeView.textColor = settings.textColor
         marqueeView.dotSize = settings.dotSize
         marqueeView.dotSpacing = settings.dotSpacing
         marqueeView.glowIntensity = settings.glowIntensity
+        marqueeView.dotMatrixEnabled = settings.dotMatrixEnabled
+        marqueeView.letterSpacing = settings.letterSpacing
+        marqueeView.font = UIFont(name: settings.fontName, size: settings.fontSize) ?? UIFont.monospacedSystemFont(ofSize: settings.fontSize, weight: .bold)
         view.backgroundColor = settings.backgroundColor
         marqueeView.backgroundColor = settings.backgroundColor
     }
