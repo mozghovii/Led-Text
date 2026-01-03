@@ -64,8 +64,8 @@ final class LedSettingsViewController: UIViewController {
         textField.setLeftPadding(12)
         textField.addTarget(self, action: #selector(textFieldDidChange), for: .editingChanged)
 
-        speedSlider.minimumValue = 20
-        speedSlider.maximumValue = 200
+        speedSlider.minimumValue = 1
+        speedSlider.maximumValue = 100
         speedSlider.addTarget(self, action: #selector(speedChanged), for: .valueChanged)
         speedValueLabel.textColor = .white
         speedValueLabel.font = UIFont.monospacedDigitSystemFont(ofSize: 14, weight: .medium)
@@ -246,9 +246,7 @@ final class LedSettingsViewController: UIViewController {
     }
 
     @objc private func openFullScreen() {
-        view.layoutIfNeeded()
-        let previewWidth = marqueeView.bounds.width
-        let fullScreenVC = LedFullScreenViewController(viewModel: viewModel, previewWidth: previewWidth)
+        let fullScreenVC = LedFullScreenViewController(viewModel: viewModel)
         fullScreenVC.modalPresentationStyle = .fullScreen
         present(fullScreenVC, animated: true)
     }

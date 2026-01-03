@@ -3,13 +3,10 @@ import UIKit
 final class LedFullScreenViewController: UIViewController {
     private let viewModel: LedSettingsViewModel
     private let marqueeView = LedMarqueeView()
-    private let previewWidth: CGFloat
-    private var speedScale: CGFloat = 1
     private var latestSettings: LedSettingsViewModel.Settings?
 
-    init(viewModel: LedSettingsViewModel, previewWidth: CGFloat) {
+    init(viewModel: LedSettingsViewModel) {
         self.viewModel = viewModel
-        self.previewWidth = previewWidth
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -41,11 +38,6 @@ final class LedFullScreenViewController: UIViewController {
         apply(settings: viewModel.settings)
     }
 
-    override func viewDidLayoutSubviews() {
-        super.viewDidLayoutSubviews()
-        updateSpeedScale()
-    }
-
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
         marqueeView.start()
@@ -67,7 +59,7 @@ final class LedFullScreenViewController: UIViewController {
     private func apply(settings: LedSettingsViewModel.Settings) {
         latestSettings = settings
         marqueeView.text = settings.text
-        marqueeView.scrollSpeed = settings.speed * speedScale
+        marqueeView.scrollSpeed = settings.speed
         marqueeView.direction = settings.direction
         marqueeView.blinkEnabled = settings.blinkEnabled
         marqueeView.textColor = settings.textColor
@@ -76,14 +68,6 @@ final class LedFullScreenViewController: UIViewController {
         marqueeView.glowIntensity = settings.glowIntensity
         view.backgroundColor = settings.backgroundColor
         marqueeView.backgroundColor = settings.backgroundColor
-    }
-
-    private func updateSpeedScale() {
-        guard marqueeView.bounds.width > 0 else { return }
-        speedScale = max(previewWidth / marqueeView.bounds.width, 0.5)
-        if let settings = latestSettings {
-            apply(settings: settings)
-        }
     }
 
     @objc private func handleTapToDismiss() {

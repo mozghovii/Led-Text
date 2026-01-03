@@ -58,6 +58,7 @@ final class LedMarqueeView: UIView {
 
     private var displayLink: CADisplayLink?
     private var lastTimestamp: CFTimeInterval = 0
+    private var smoothedDelta: CGFloat = 0
     private var blinkTimer: Timer?
     private let spacing: CGFloat = 40
     private var offset: CGFloat = 0
@@ -140,12 +141,12 @@ final class LedMarqueeView: UIView {
 
         let delta = CGFloat(link.timestamp - lastTimestamp)
         lastTimestamp = link.timestamp
+        let smoothingFactor: CGFloat = 0.12
+        smoothedDelta = smoothedDelta == 0 ? delta : (smoothedDelta * (1 - smoothingFactor) + delta * smoothingFactor)
 
         let directionMultiplier: CGFloat = direction == .left ? -1 : 1
-        let baseWidth: CGFloat = 420
-        let widthScale = max(bounds.width / baseWidth, 0.6)
         let pixelStep = max(dotSize + dotSpacing, 1)
-        let offset = scrollSpeed * pixelStep * widthScale * delta * directionMultiplier
+        let offset = scrollSpeed * pixelStep * smoothedDelta * directionMultiplier
 
         self.offset += offset
         setNeedsDisplay()
