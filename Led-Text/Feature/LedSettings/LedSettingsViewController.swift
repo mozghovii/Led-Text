@@ -22,6 +22,7 @@ final class LedSettingsViewController: UIViewController {
     private let controlsContainer = UIVisualEffectView(effect: UIBlurEffect(style: .systemUltraThinMaterialDark))
     private let controlsOverlay = UIView()
     private let controlsTopSeparator = UIView()
+    private let panelHandle = UIView()
     private var panelHeightConstraint: NSLayoutConstraint?
     private var textDebounceTimer: Timer?
 
@@ -54,7 +55,7 @@ final class LedSettingsViewController: UIViewController {
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
         let isCompactHeight = view.bounds.height < 760
-        panelHeightConstraint?.constant = isCompactHeight ? 300 : 320
+        panelHeightConstraint?.constant = isCompactHeight ? 320 : 340
     }
 
     override func viewWillDisappear(_ animated: Bool) {
@@ -192,6 +193,11 @@ final class LedSettingsViewController: UIViewController {
             controlsTopSeparator.heightAnchor.constraint(equalToConstant: 1)
         ])
 
+        panelHandle.translatesAutoresizingMaskIntoConstraints = false
+        panelHandle.backgroundColor = UIColor.white.withAlphaComponent(0.2)
+        panelHandle.layer.cornerRadius = 2
+        controlsContainer.contentView.addSubview(panelHandle)
+
         let scrollView = UIScrollView()
         scrollView.translatesAutoresizingMaskIntoConstraints = false
         scrollView.showsVerticalScrollIndicator = false
@@ -236,29 +242,34 @@ final class LedSettingsViewController: UIViewController {
         scrollView.addSubview(contentStack)
         stickyButtonContainer.addSubview(fullScreenButton)
 
-        panelHeightConstraint = controlsContainer.heightAnchor.constraint(equalToConstant: 320)
+        panelHeightConstraint = controlsContainer.heightAnchor.constraint(equalToConstant: 340)
         panelHeightConstraint?.isActive = true
 
         NSLayoutConstraint.activate([
             previewContainer.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
             previewContainer.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
             previewContainer.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 16),
-            previewContainer.heightAnchor.constraint(equalTo: view.heightAnchor, multiplier: 0.55),
+            previewContainer.heightAnchor.constraint(equalTo: view.heightAnchor, multiplier: 0.52),
             previewContainer.bottomAnchor.constraint(lessThanOrEqualTo: controlsContainer.topAnchor, constant: -12),
 
             marqueeView.leadingAnchor.constraint(equalTo: previewContainer.leadingAnchor, constant: 16),
             marqueeView.trailingAnchor.constraint(equalTo: previewContainer.trailingAnchor, constant: -16),
             marqueeView.centerYAnchor.constraint(equalTo: previewContainer.centerYAnchor),
-            marqueeView.heightAnchor.constraint(equalTo: previewContainer.heightAnchor, multiplier: 0.28),
+            marqueeView.heightAnchor.constraint(equalTo: previewContainer.heightAnchor, multiplier: 0.26),
 
             controlsContainer.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             controlsContainer.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             controlsContainer.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
 
+            panelHandle.topAnchor.constraint(equalTo: controlsContainer.contentView.topAnchor, constant: 8),
+            panelHandle.centerXAnchor.constraint(equalTo: controlsContainer.contentView.centerXAnchor),
+            panelHandle.widthAnchor.constraint(equalToConstant: 40),
+            panelHandle.heightAnchor.constraint(equalToConstant: 4),
+
             stickyButtonContainer.leadingAnchor.constraint(equalTo: controlsContainer.contentView.leadingAnchor),
             stickyButtonContainer.trailingAnchor.constraint(equalTo: controlsContainer.contentView.trailingAnchor),
             stickyButtonContainer.bottomAnchor.constraint(equalTo: controlsContainer.contentView.bottomAnchor),
-            stickyButtonContainer.heightAnchor.constraint(equalToConstant: 72),
+            stickyButtonContainer.heightAnchor.constraint(equalToConstant: 76),
 
             fullScreenButton.leadingAnchor.constraint(equalTo: stickyButtonContainer.leadingAnchor, constant: 16),
             fullScreenButton.trailingAnchor.constraint(equalTo: stickyButtonContainer.trailingAnchor, constant: -16),
@@ -266,7 +277,7 @@ final class LedSettingsViewController: UIViewController {
 
             scrollView.leadingAnchor.constraint(equalTo: controlsContainer.contentView.leadingAnchor, constant: 18),
             scrollView.trailingAnchor.constraint(equalTo: controlsContainer.contentView.trailingAnchor, constant: -18),
-            scrollView.topAnchor.constraint(equalTo: controlsContainer.contentView.topAnchor, constant: 18),
+            scrollView.topAnchor.constraint(equalTo: panelHandle.bottomAnchor, constant: 12),
             scrollView.bottomAnchor.constraint(equalTo: stickyButtonContainer.topAnchor),
 
             contentStack.leadingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.leadingAnchor),
