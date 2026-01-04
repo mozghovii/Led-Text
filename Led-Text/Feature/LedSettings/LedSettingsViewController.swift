@@ -21,6 +21,7 @@ final class LedSettingsViewController: UIViewController {
     private let previewContainer = UIView()
     private let controlsContainer = UIVisualEffectView(effect: UIBlurEffect(style: .systemUltraThinMaterialDark))
     private let controlsOverlay = UIView()
+    private let controlsTopSeparator = UIView()
     private var panelHeightConstraint: NSLayoutConstraint?
     private var textDebounceTimer: Timer?
 
@@ -53,7 +54,7 @@ final class LedSettingsViewController: UIViewController {
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
         let isCompactHeight = view.bounds.height < 760
-        panelHeightConstraint?.constant = isCompactHeight ? 280 : 300
+        panelHeightConstraint?.constant = isCompactHeight ? 300 : 320
     }
 
     override func viewWillDisappear(_ animated: Bool) {
@@ -66,7 +67,7 @@ final class LedSettingsViewController: UIViewController {
         previewContainer.backgroundColor = .black
         previewContainer.layer.cornerRadius = 24
         previewContainer.layer.borderWidth = 1
-        previewContainer.layer.borderColor = UIColor.white.withAlphaComponent(0.08).cgColor
+        previewContainer.layer.borderColor = UIColor.white.withAlphaComponent(0.04).cgColor
         previewContainer.clipsToBounds = true
 
         marqueeView.translatesAutoresizingMaskIntoConstraints = false
@@ -75,13 +76,18 @@ final class LedSettingsViewController: UIViewController {
 
     private func configureControls() {
         textField.placeholder = "LED Text"
-        textField.backgroundColor = UIColor.white.withAlphaComponent(0.08)
+        textField.backgroundColor = UIColor.white.withAlphaComponent(0.12)
         textField.textColor = .white
         textField.font = UIFont.systemFont(ofSize: 16, weight: .regular)
         textField.layer.cornerRadius = 12
         textField.layer.borderWidth = 1
-        textField.layer.borderColor = UIColor.white.withAlphaComponent(0.12).cgColor
+        textField.layer.borderColor = UIColor.white.withAlphaComponent(0.1).cgColor
         textField.setLeftPadding(14)
+        textField.clearButtonMode = .whileEditing
+        textField.attributedPlaceholder = NSAttributedString(
+            string: "LED Text",
+            attributes: [.foregroundColor: UIColor.white.withAlphaComponent(0.45)]
+        )
         textField.addTarget(self, action: #selector(textFieldDidChange), for: .editingChanged)
 
         speedSlider.minimumValue = 20
@@ -149,11 +155,14 @@ final class LedSettingsViewController: UIViewController {
         fullScreenButton.setTitle("Full Screen Preview", for: .normal)
         fullScreenButton.setTitleColor(.white, for: .normal)
         fullScreenButton.titleLabel?.font = UIFont.systemFont(ofSize: 16, weight: .semibold)
-        fullScreenButton.backgroundColor = UIColor.systemBlue.withAlphaComponent(0.2)
-        fullScreenButton.layer.cornerRadius = 16
+        fullScreenButton.setImage(UIImage(systemName: "arrow.up.left.and.arrow.down.right"), for: .normal)
+        fullScreenButton.tintColor = .white
+        fullScreenButton.backgroundColor = UIColor.white.withAlphaComponent(0.12)
+        fullScreenButton.layer.cornerRadius = 18
         fullScreenButton.layer.borderWidth = 1
-        fullScreenButton.layer.borderColor = UIColor.white.withAlphaComponent(0.25).cgColor
-        fullScreenButton.contentEdgeInsets = UIEdgeInsets(top: 14, left: 24, bottom: 14, right: 24)
+        fullScreenButton.layer.borderColor = UIColor.white.withAlphaComponent(0.3).cgColor
+        fullScreenButton.contentEdgeInsets = UIEdgeInsets(top: 14, left: 18, bottom: 14, right: 18)
+        fullScreenButton.imageEdgeInsets = UIEdgeInsets(top: 0, left: -6, bottom: 0, right: 6)
         fullScreenButton.addTarget(self, action: #selector(openFullScreen), for: .touchUpInside)
     }
 
@@ -173,6 +182,16 @@ final class LedSettingsViewController: UIViewController {
             controlsOverlay.bottomAnchor.constraint(equalTo: controlsContainer.contentView.bottomAnchor)
         ])
 
+        controlsTopSeparator.translatesAutoresizingMaskIntoConstraints = false
+        controlsTopSeparator.backgroundColor = UIColor.white.withAlphaComponent(0.08)
+        controlsContainer.contentView.addSubview(controlsTopSeparator)
+        NSLayoutConstraint.activate([
+            controlsTopSeparator.topAnchor.constraint(equalTo: controlsContainer.contentView.topAnchor),
+            controlsTopSeparator.leadingAnchor.constraint(equalTo: controlsContainer.contentView.leadingAnchor),
+            controlsTopSeparator.trailingAnchor.constraint(equalTo: controlsContainer.contentView.trailingAnchor),
+            controlsTopSeparator.heightAnchor.constraint(equalToConstant: 1)
+        ])
+
         let scrollView = UIScrollView()
         scrollView.translatesAutoresizingMaskIntoConstraints = false
         scrollView.showsVerticalScrollIndicator = false
@@ -182,7 +201,7 @@ final class LedSettingsViewController: UIViewController {
 
         let contentStack = UIStackView()
         contentStack.axis = .vertical
-        contentStack.spacing = 12
+        contentStack.spacing = 14
         contentStack.alignment = .fill
         contentStack.translatesAutoresizingMaskIntoConstraints = false
 
@@ -217,19 +236,20 @@ final class LedSettingsViewController: UIViewController {
         scrollView.addSubview(contentStack)
         stickyButtonContainer.addSubview(fullScreenButton)
 
-        panelHeightConstraint = controlsContainer.heightAnchor.constraint(equalToConstant: 300)
+        panelHeightConstraint = controlsContainer.heightAnchor.constraint(equalToConstant: 320)
         panelHeightConstraint?.isActive = true
 
         NSLayoutConstraint.activate([
             previewContainer.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
             previewContainer.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
             previewContainer.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 16),
-            previewContainer.bottomAnchor.constraint(equalTo: controlsContainer.topAnchor, constant: -12),
+            previewContainer.heightAnchor.constraint(equalTo: view.heightAnchor, multiplier: 0.55),
+            previewContainer.bottomAnchor.constraint(lessThanOrEqualTo: controlsContainer.topAnchor, constant: -12),
 
             marqueeView.leadingAnchor.constraint(equalTo: previewContainer.leadingAnchor, constant: 16),
             marqueeView.trailingAnchor.constraint(equalTo: previewContainer.trailingAnchor, constant: -16),
             marqueeView.centerYAnchor.constraint(equalTo: previewContainer.centerYAnchor),
-            marqueeView.heightAnchor.constraint(equalTo: previewContainer.heightAnchor, multiplier: 0.32),
+            marqueeView.heightAnchor.constraint(equalTo: previewContainer.heightAnchor, multiplier: 0.28),
 
             controlsContainer.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             controlsContainer.trailingAnchor.constraint(equalTo: view.trailingAnchor),
@@ -244,9 +264,9 @@ final class LedSettingsViewController: UIViewController {
             fullScreenButton.trailingAnchor.constraint(equalTo: stickyButtonContainer.trailingAnchor, constant: -16),
             fullScreenButton.centerYAnchor.constraint(equalTo: stickyButtonContainer.centerYAnchor),
 
-            scrollView.leadingAnchor.constraint(equalTo: controlsContainer.contentView.leadingAnchor, constant: 16),
-            scrollView.trailingAnchor.constraint(equalTo: controlsContainer.contentView.trailingAnchor, constant: -16),
-            scrollView.topAnchor.constraint(equalTo: controlsContainer.contentView.topAnchor, constant: 16),
+            scrollView.leadingAnchor.constraint(equalTo: controlsContainer.contentView.leadingAnchor, constant: 18),
+            scrollView.trailingAnchor.constraint(equalTo: controlsContainer.contentView.trailingAnchor, constant: -18),
+            scrollView.topAnchor.constraint(equalTo: controlsContainer.contentView.topAnchor, constant: 18),
             scrollView.bottomAnchor.constraint(equalTo: stickyButtonContainer.topAnchor),
 
             contentStack.leadingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.leadingAnchor),
@@ -256,7 +276,7 @@ final class LedSettingsViewController: UIViewController {
             contentStack.widthAnchor.constraint(equalTo: scrollView.frameLayoutGuide.widthAnchor)
         ])
 
-        fullScreenButton.heightAnchor.constraint(equalToConstant: 52).isActive = true
+        fullScreenButton.heightAnchor.constraint(equalToConstant: 54).isActive = true
     }
 
     private func makeRow(iconName: String, control: UIView, height: CGFloat) -> UIStackView {
